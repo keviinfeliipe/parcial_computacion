@@ -5,76 +5,27 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ejercicio Edificios</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/94/three.min.js"
-        integrity="sha512-ZGgXd6TB5qjtvTU6Q5o/LJM4pwLNy8U8XXJh+vJZDXp2wC8ASrl4WOeivaq2fpYc3TnTCLzyDvVjY8YhvNYaXg=="
-        crossorigin="anonymous"></script>
+    <title>Ejercicio Blender</title>
+    <script src="https://threejs.org/build/three.min.js"></script>
+    <script src="https://cdn.rawgit.com/mrdoob/three.js/master/examples/js/loaders/GLTFLoader.js"></script>
     <script src="https://unpkg.com/three@0.85.0/examples/js/controls/OrbitControls.js"></script>
     <script src="https://unpkg.com/three@0.85.0/examples/js/libs/stats.min.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.6/dat.gui.js"></script>
+    <script src='threex.keyboardstate.js'></script>
+    
 </head>
 
 <body>
     <section id="myStats"></section>
-    
     <script>
+        var escena;
+        var camara;
+        var render;
+        var controles;
+        var stats;
+        let luces;
+        var keyboard = new THREEx.KeyboardState();
 
-        var scena
-        var camara
-        var render
-        var material
-        var plano
-        var controles
-        var stats
-        var limites = 30
-
-        function crearCamera() {
-            camara = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100)
-            camara.position.set(0,-70,30)
-
-            controles = new THREE.OrbitControls(camara)
-        }
-
-        function crearBase() {
-            plano = new THREE.Mesh(
-                new THREE.PlaneGeometry(65, 65), 
-                new THREE.MeshPhongMaterial({ color: '#ff0000' })
-                );
-            plano.name = "plane";
-            scena.add(plano);
-        }
-
-        function generarLetra() {
-            var letras = ["a", "b", "c", "d", "e", "f", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-            var numero = (Math.random() * 15).toFixed(0);
-            return letras[numero];
-        }
-
-        function colorHEX() {
-            var coolor = "";
-            for (var i = 0; i < 6; i++) {
-                coolor = coolor + generarLetra();
-            }
-            return "#" + coolor;
-        }
-
-        let _controls = new (function () {
-            
-            this.construir = function () {
-                let cubePositionX = Math.floor(Math.random() * (limites - (-limites)) + (-limites))
-                let cubePositionY = Math.floor(Math.random() * (limites - (-limites)) + (-limites))
-                let cubeSizeXY = Math.floor(Math.random() * (5 - 2) + (2))
-                let cubeSizeZ = Math.floor(Math.random() * (20 - 5) + (5))
-
-                let geometry = new THREE.CubeGeometry(cubeSizeXY, cubeSizeXY, cubeSizeZ);
-                new THREE.MeshPhongMaterial({ color: colorHEX })
-                cube = new THREE.Mesh(geometry, material);
-                
-                cube.position.set(cubePositionX, cubePositionY, cubeSizeZ / 2);
-                scena.add(cube)
-            }
-        })
 
         function crearRenderer() {
             render = new THREE.WebGLRenderer();
@@ -82,12 +33,56 @@
             document.body.appendChild(render.domElement);
         }
 
-        function crearLuces(){
-            const light = new THREE.AmbientLight( 0x404040 ); // soft white light
-            light.position.set(0,10,5);
-            scena.add( light );
-
+        function crearCamara() {
+            camara = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 100)
+            camara.position.x=0
+            camara.position.y=10
+            camara.position.z=20
+            controles = new THREE.OrbitControls(camara)
         }
+        function crearLuces(){
+            luces = new THREE.AmbientLight( 0xffffff );
+            escena.add( luces );
+            luces.position.x=0;
+            luces.position.y=0;
+            luces.position.z=0;
+        }
+
+        function createLightDirectional() {
+            let directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.name = "luz direccional";
+            directionalLight.position.set(-50, -50, 5);
+            escena.add(directionalLight);
+        }
+
+        function createLightPoint() {
+            let light = new THREE.PointLight(0xffffff, 1, 1000);
+            let sphere = new THREE.SphereGeometry(0.5, 16, 8);
+            light.position.set(50, 50, 50);
+            light.name = "luz punto";
+            light.add(
+                    new THREE.Mesh(
+                    sphere,
+                    new THREE.MeshBasicMaterial({ color: 0xD5D5D5 })
+                    )
+                );
+            light.position.set(-50, -50, 7);
+            escena.add(light);
+        }
+
+        function createLightSpot() {
+            let spotLight = new THREE.SpotLight(0xffffff);
+            spotLight.castShadow = true;
+            spotLight.shadow.mapSize.width = 4096;
+            spotLight.shadow.mapSize.height = 4096;
+            spotLight.shadow.camera.near = 50;
+            spotLight.shadow.camera.far = 400;
+            spotLight.shadow.camera.fov = 3;
+            spotLight.position.set(-50, -50, 5);
+            spotLight.name = "luz lugar";
+            escena.add(spotLight);
+        }
+
 
         function crearStats() {
             stats = new Stats()
@@ -100,34 +95,63 @@
         }
 
         function crearDataGui() {
-            var gui = new dat.GUI()
-            gui.add(_controls, "construir")
+            var gui = new dat.GUI()   
+        }
+
+        function crearJugadorHumano(){
+            const Humano = new THREE.Mesh(
+				new THREE.BoxGeometry( 10, 5, 1 ),
+				new THREE.MeshBasicMaterial(
+					{ color: '#FFFF00' }
+				)
+			);
+			Humano.position.set(0, 0, 0);
+            escena.add(Humano)
+        }
+
+        function crearJugadorCPU(){
+            const CPU = new THREE.Mesh(
+				new THREE.BoxGeometry( 10, 5, 1 ),
+				new THREE.MeshBasicMaterial(
+					{ color: '#00FF00' }
+				)
+			);
+			CPU.position.set(0, 0, 10);
+            escena.add(CPU)
+        }
+
+        function crearPelota(){
+            const pelota = new THREE.Mesh(
+				new THREE.BoxGeometry( 0.5, 0.5, 0.5 ),
+				new THREE.MeshBasicMaterial(
+					{ color: '#FF0000' }
+				)
+			);
+			pelota.position.set(0, 0, 5);
+            escena.add(pelota)
         }
 
         function init() {
-            scena = new THREE.Scene();
-            scena.background = new THREE.Color('#51D1F6');
-            scena.fog = new THREE.Fog(0xffffff, 10, 100);
-            crearCamera()
-            crearBase()
-            crearLuces()
+            escena = new THREE.Scene();
+            escena.background = new THREE.Color('#ffffff');
             crearRenderer()
+            crearCamara()
             crearStats()
             crearDataGui()
+            crearLuces()
+            crearJugadorHumano()
+            crearJugadorCPU()
+            crearPelota()
         }
-
-        function animate(time) {
+        function animate() {
             requestAnimationFrame(animate);
-            render.render(scena, camara);
-            controles.update()
+            render.render(escena, camara);
             stats.update()
         }
-
         init();
         requestAnimationFrame(animate);
-
     </script>
-    
+
 </body>
 
 </html>
